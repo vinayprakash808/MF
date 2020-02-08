@@ -1,0 +1,94 @@
+server.R
+
+source("utils.R")
+library(dplyr)
+
+server <- function(input, output,session) { 
+  df1 <- df %>% filter(Date1 == Sys.Date())
+  data_1 <- reactiveVal(df1)
+
+
+
+observeEvent(input$Submit,{
+  req(input$Date[[1]] <= input$Date[[2]])
+  if (input$Tic == "ALL"){
+    table_display <- df %>% filter(Date1 %in% input$Date[1] : input$Date[2])
+  }
+  
+  else if (input$Tic == "ALL" && input$Date[1] == Sys.Date() && input$Date[2] == Sys.Date())
+   { 
+    table_display <- df %>% filter(Date1 == Sys.Date())
+   }
+  
+  else if (input$Tic != "ALL" && input$Date[1] == Sys.Date() && input$Date[2] == Sys.Date())
+  {
+    table_display <- df %>% filter(ID %in% input$Tic & Date1 == Sys.Date())
+  }
+  
+ else 
+  {
+    table_display <- df %>% filter(ID %in% input$Tic & Date1 %in% input$Date[1] : input$Date[2])
+  }
+  
+  data_1(table_display)
+},ignoreNULL = FALSE)
+
+# observeEvent(input$Submit,{
+#   if (input$Date[[1]] > input$Date[[2]]) {
+#     showNotification("Invalid dates")
+#     }
+# })
+
+
+output$Inv <- renderText({
+  if (input$Date[[1]] > input$Date[[2]]) {
+    print("Invalid dates. Your start date is after end Date. Please select valid dates")
+  }
+})
+
+output$table <- DT::renderDataTable({
+  # #req(input$Date[[1]] <= input$Date[[2]])
+  # req(isolate(input$Date[[1]]) <= isolate(input$Date[[2]]))
+  
+  datatable(data_1())
+})
+
+}
+
+ui.R
+
+
+library(shiny)
+library(shinydashboard)
+library(dplyr)
+library(DT)
+library(lubridate)
+source("utils.R")
+
+ui <- dashboardPage(
+  dashboardHeader(disable = TRUE),
+  dashboardSidebar(disable = TRUE),
+  dashboardBody(
+    tags$head(tags$style(".shiny-output-error{visibility: hidden;}")),
+    dateRangeInput("Date", "", start = Sys.Date(), end = Sys.Date(), format = "yyyy-mm-dd", separator = "-"),
+    selectInput("Tic","",choices = c("ALL",as.character(df$ID)),selected = "ALL"),
+    actionButton("Submit","Submit"),
+    textOutput("Inv"),
+    dataTableOutput("table")
+  )
+)
+
+utils.R
+df <- structure(list(Date = structure(c(1541662915.921, 1541562949.500, 
+                                         1581145671.845, 1581145671.845, 1541662993.957, 1541662915.921, 
+                                        1541662949.842, 1541662949.845, 1541662949.845, 1581145671.957
+), class = c("POSIXct", "POSIXt"), tzone = "UTC"), Date1 = structure(c(17843, 
+                                                                       17843, 17844, 17843, 18843, 17843, 18300, 17843, 17843, 18300
+), class = "Date"), ID = structure(c(1L, 1L, 1L, 1L, 1L, 
+                                     1L, 1L, 1L, 2L, 2L), .Label = c("AAA", "BBB"), class = "factor"), 
+Value = c(68, 70175, 71107, 702175, 72638, 7238, 739, 738469, 
+          75901, 7106), Status = structure(c(1L, 1L, 2L, 2L, 1L, 2L, 
+                                             1L, 1L, 2L, 1L), .Label = c("Approved", "Pending"), class = "factor")), row.names = c(NA, 
+                                                                                                                                   -10L), class = "data.frame")
+df$Date <- NULL
+df$Status <- NULL
